@@ -1204,7 +1204,7 @@
               <tr>
                 <td><div class="equip-name">Glacière standard</div><div class="equip-sub">Utilisation routine PEV</div></td>
                 <td>Variable</td>
-                <td id="req-glaciere-std">—</td>
+                <td><input type="number" class="num-input" id="req-glaciere-std" min="0" placeholder="—" style="background:#fff8e1;border-color:#ffe082;" oninput="calcGap('glaciere-std')"></td>
                 <td><input type="number" class="num-input" id="dispo-glaciere-std" min="0" placeholder="0" oninput="calcGap('glaciere-std')"></td>
                 <td><input type="number" class="num-input" id="etat-glaciere-std" min="0" max="100" placeholder="100">%</td>
                 <td><span class="calc-cell calc-neutral" id="gap-glaciere-std">—</span></td>
@@ -1213,7 +1213,7 @@
               <tr>
                 <td><div class="equip-name">Glacière VPOb campagne</div><div class="equip-sub">Pour campagnes de masse</div></td>
                 <td>Variable</td>
-                <td id="req-glaciere-camp">2</td>
+                <td><input type="number" class="num-input" id="req-glaciere-camp" min="0" placeholder="2" value="2" style="background:#fff8e1;border-color:#ffe082;" oninput="calcGap('glaciere-camp')"></td>
                 <td><input type="number" class="num-input" id="dispo-glaciere-camp" min="0" placeholder="0" oninput="calcGap('glaciere-camp')"></td>
                 <td><input type="number" class="num-input" id="etat-glaciere-camp" min="0" max="100" placeholder="100">%</td>
                 <td><span class="calc-cell calc-neutral" id="gap-glaciere-camp">—</span></td>
@@ -1244,7 +1244,7 @@
               <tr>
                 <td><div class="equip-name">Porte-vaccins (Vaccine Carrier)</div><div class="equip-sub">1 par équipe de vaccination</div></td>
                 <td>1 / équipe</td>
-                <td id="req-pv">—</td>
+                <td><input type="number" class="num-input" id="req-pv" min="0" placeholder="—" style="background:#fff8e1;border-color:#ffe082;" oninput="calcGap('pv')"></td>
                 <td><input type="number" class="num-input" id="dispo-pv" min="0" placeholder="0" oninput="calcGap('pv')"></td>
                 <td><input type="number" class="num-input" id="etat-pv" min="0" max="100" placeholder="100">%</td>
                 <td><span class="calc-cell calc-neutral" id="gap-pv">—</span></td>
@@ -1275,7 +1275,7 @@
               <tr>
                 <td><div class="equip-name">Accumulateurs de froid (Ice pack)</div><div class="equip-sub">4 par porte-vaccins</div></td>
                 <td>4 / PV</td>
-                <td id="req-acc">—</td>
+                <td><input type="number" class="num-input" id="req-acc" min="0" placeholder="—" style="background:#fff8e1;border-color:#ffe082;" oninput="calcGap('acc')"></td>
                 <td><input type="number" class="num-input" id="dispo-acc" min="0" placeholder="0" oninput="calcGap('acc')"></td>
                 <td><input type="number" class="num-input" id="etat-acc" min="0" max="100" placeholder="100">%</td>
                 <td><span class="calc-cell calc-neutral" id="gap-acc">—</span></td>
@@ -1360,7 +1360,9 @@
                 <td><span id="refrig-total-cap" style="font-family:'IBM Plex Mono',monospace; font-weight:700; color:#4fc38a;">0</span> L</td>
                 <td>
                   <span style="font-size:11px; color:#a8d5ba;">Besoin :</span>
-                  <span id="req-refrig" style="font-family:'IBM Plex Mono',monospace; font-weight:700; color:#4fc38a;">—</span>
+                  <input type="number" id="req-refrig" min="0" placeholder="—"
+                    style="width:60px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:4px;color:#4fc38a;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13px;padding:3px 5px;text-align:center;"
+                    oninput="calcGap('refrig')">
                 </td>
                 <td>
                   <span style="font-size:11px; color:#a8d5ba;">Gap : </span>
@@ -1424,7 +1426,9 @@
                 <td><span id="cong-total-cap" style="font-family:'IBM Plex Mono',monospace; font-weight:700; color:#4fc38a;">0</span> L</td>
                 <td>
                   <span style="font-size:11px; color:#a8d5ba;">Besoin :</span>
-                  <span id="req-cong" style="font-family:'IBM Plex Mono',monospace; font-weight:700; color:#4fc38a;">—</span>
+                  <input type="number" id="req-cong" min="0" placeholder="—"
+                    style="width:60px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:4px;color:#4fc38a;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13px;padding:3px 5px;text-align:center;"
+                    oninput="calcGap('cong')">
                 </td>
                 <td>
                   <span style="font-size:11px; color:#a8d5ba;">Gap : </span>
@@ -1624,6 +1628,9 @@
         <span class="badge-sec">115 districts · Madagascar 2026</span>
       </div>
       <div class="card-body">
+        <!-- Status chargement -->
+        <div id="nat-load-status" style="display:none; padding:10px 14px; border-radius:6px; font-size:13px; font-weight:500; background:#fff8e1; border:1px solid #ffe082; color:#7d5a00; margin-bottom:14px;"></div>
+
         <!-- KPIs nationaux -->
         <div class="nat-kpi-row" id="nat-kpi-row"></div>
 
@@ -1680,6 +1687,7 @@
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="goToStep(5)">‹ Tableau district</button>
+      <button class="btn btn-secondary" onclick="allDistrictsLoaded=false; buildNationalTable()">☁️ Recharger depuis Sheets</button>
       <button class="btn btn-primary" onclick="buildNationalTable()">🔄 Actualiser</button>
     </div>
   </div>
@@ -1855,16 +1863,16 @@ function applyExcelDistrictData(district) {
   if (d.nb_fs !== '') document.getElementById('nb-fosa').value = d.nb_fs;
   if (d.nb_equipes !== '') document.getElementById('nb-equipes').value = d.nb_equipes;
 
-  // Besoins requis (affichés en texte dans les tableaux)
-  if (d.req_glaciere_std !== '') document.getElementById('req-glaciere-std').textContent = d.req_glaciere_std;
-  if (d.req_glaciere_camp !== '') document.getElementById('req-glaciere-camp').textContent = d.req_glaciere_camp;
+  // Besoins requis — maintenant des inputs éditables
+  if (d.req_glaciere_std !== '') document.getElementById('req-glaciere-std').value = d.req_glaciere_std;
+  if (d.req_glaciere_camp !== '') document.getElementById('req-glaciere-camp').value = d.req_glaciere_camp;
   if (d.nb_equipes !== '') {
     const ne_ceil = Math.ceil(d.nb_equipes);
-    document.getElementById('req-pv').textContent = ne_ceil;
-    document.getElementById('req-acc').textContent = ne_ceil * 4;
+    document.getElementById('req-pv').value  = ne_ceil;
+    document.getElementById('req-acc').value = ne_ceil * 4;
   }
-  if (d.req_refrig !== '') document.getElementById('req-refrig').textContent = d.req_refrig;
-  if (d.req_cong !== '') document.getElementById('req-cong').textContent = d.req_cong;
+  if (d.req_refrig !== '') document.getElementById('req-refrig').value = d.req_refrig;
+  if (d.req_cong !== '')   document.getElementById('req-cong').value   = d.req_cong;
   if (d.cap_plus5_req !== '') document.getElementById('cap-plus5-req').value = d.cap_plus5_req;
   if (d.cap_minus20_req !== '') document.getElementById('cap-minus20-req').value = d.cap_minus20_req;
 
@@ -1943,10 +1951,6 @@ function fillFormFromSheet(d) {
     const el = document.getElementById(id);
     if (el && val !== undefined && val !== '') el.value = val;
   };
-  const setTxt = (id, val) => {
-    const el = document.getElementById(id);
-    if (el && val !== undefined && val !== '') el.textContent = val;
-  };
 
   // Identification
   set('resp-name',    d['Responsable PEV']);
@@ -1957,17 +1961,26 @@ function fillFormFromSheet(d) {
   set('nb-equipes',   d['Nombre Équipes']);
   set('data-source',  d['Source Données']);
 
-  // Déclencher les calculs de besoins
+  // Req fields — lire directement les valeurs sauvegardées dans Sheets
+  // (priorité sur le calcul depuis nb-fosa / nb-equipes)
+  set('req-glaciere-std',  d['Req. Glacière Standard']);
+  set('req-glaciere-camp', d['Req. Glacière Campagne']);
+  set('req-pv',            d['Req. Porte-Vaccins']);
+  set('req-acc',           d['Req. Accumulateurs']);
+  set('req-refrig',        d['Req. Réfrigérateurs']);
+  set('req-cong',          d['Req. Congélateurs']);
+
+  // Si les colonnes req ne sont pas dans le sheet (anciennes saisies), recalculer
   const nbFosa = parseInt(d['Nombre FS']) || 0;
-  const nbEq   = parseFloat(d['Nombre Équipes'])   || 0;
+  const nbEq   = parseFloat(d['Nombre Équipes']) || 0;
   const nbEqC  = Math.ceil(nbEq);
-  if (nbFosa) {
-    document.getElementById('req-refrig').textContent = nbFosa;
-    document.getElementById('req-cong').textContent   = nbFosa;
+  if (!d['Req. Réfrigérateurs'] && nbFosa) {
+    document.getElementById('req-refrig').value = nbFosa;
+    document.getElementById('req-cong').value   = nbFosa;
   }
-  if (nbEqC) {
-    document.getElementById('req-pv').textContent  = nbEqC;
-    document.getElementById('req-acc').textContent = nbEqC * 4;
+  if (!d['Req. Porte-Vaccins'] && nbEqC) {
+    document.getElementById('req-pv').value  = nbEqC;
+    document.getElementById('req-acc').value = nbEqC * 4;
   }
 
   // ECF Passifs
@@ -2041,15 +2054,27 @@ function fillFormFromSheet(d) {
 // GAP CALCULATION
 // ============================================================
 function calcGap(id) {
-  const reqEl = document.getElementById('req-' + id);
-  const dispoEl = document.getElementById('dispo-' + id);
-  const gapEl = document.getElementById('gap-' + id);
-  if (!reqEl || !dispoEl || !gapEl) return;
+  const reqEl  = document.getElementById('req-' + id);
+  const gapEl  = document.getElementById('gap-' + id);
+  if (!reqEl || !gapEl) return;
 
-  const req = parseFloat(reqEl.textContent) || 0;
-  const dispo = parseFloat(dispoEl.value) || 0;
+  const req = parseFloat(reqEl.value) || 0;
 
-  if (isNaN(dispo)) { gapEl.textContent = '—'; gapEl.className = 'calc-cell calc-neutral'; return; }
+  // Pour réfrigérateurs et congélateurs, le "disponible" est le total calculé (span)
+  let dispo;
+  if (id === 'refrig' || id === 'cong') {
+    const totalEl = document.getElementById(id === 'refrig' ? 'refrig-total-dispo' : 'cong-total-dispo');
+    dispo = parseFloat(totalEl ? totalEl.textContent : 0) || 0;
+  } else {
+    const dispoEl = document.getElementById('dispo-' + id);
+    dispo = dispoEl ? (parseFloat(dispoEl.value) || 0) : 0;
+  }
+
+  if (req === 0 && dispo === 0) {
+    gapEl.textContent = '—';
+    gapEl.className = 'calc-cell calc-neutral';
+    return;
+  }
   const gap = dispo - req;
   gapEl.textContent = (gap >= 0 ? '+' : '') + gap.toFixed(1);
   gapEl.className = 'calc-cell ' + (gap >= 0 ? 'calc-ok' : 'calc-gap');
@@ -2062,14 +2087,14 @@ document.addEventListener('input', function(e) {
   if (e.target.id === 'nb-equipes') {
     const ne = parseFloat(e.target.value) || 0;
     const ne_ceil = Math.ceil(ne);
-    document.getElementById('req-pv').textContent = ne_ceil || '—';
-    document.getElementById('req-acc').textContent = ne_ceil ? (ne_ceil * 4) : '—';
+    document.getElementById('req-pv').value  = ne_ceil || '';
+    document.getElementById('req-acc').value = ne_ceil ? (ne_ceil * 4) : '';
     calcGap('pv'); calcGap('acc');
   }
   if (e.target.id === 'nb-fosa') {
     const nf = parseInt(e.target.value) || 0;
-    document.getElementById('req-refrig').textContent = nf || '—';
-    document.getElementById('req-cong').textContent = nf || '—';
+    document.getElementById('req-refrig').value = nf || '';
+    document.getElementById('req-cong').value   = nf || '';
     calcGap('refrig'); calcGap('cong');
   }
 });
@@ -2131,15 +2156,21 @@ function saveSessionSubmission() {
   const district = g('district');
   if (!district) return;
   sessionSubmissions[district] = {
-    region:            g('region'),
+    region:             g('region'),
+    req_glaciere_std:   parseFloat(g('req-glaciere-std'))   || null,
     dispo_glaciere_std: parseFloat(g('dispo-glaciere-std')) || null,
-    dispo_glaciere_camp:parseFloat(g('dispo-glaciere-camp')) || null,
-    dispo_pv:           parseFloat(g('dispo-pv')) || null,
-    dispo_acc:          parseFloat(g('dispo-acc')) || null,
-    total_refrig:       parseFloat(vn('refrig-total-dispo')) || null,
-    total_cong:         parseFloat(vn('cong-total-dispo')) || null,
-    cap_plus5:          parseFloat(g('cap-plus5')) || null,
-    cap_minus20:        parseFloat(g('cap-minus20')) || null,
+    req_pv:             parseFloat(g('req-pv'))             || null,
+    dispo_pv:           parseFloat(g('dispo-pv'))           || null,
+    req_acc:            parseFloat(g('req-acc'))            || null,
+    dispo_acc:          parseFloat(g('dispo-acc'))          || null,
+    req_refrig:         parseFloat(g('req-refrig'))         || null,
+    total_refrig:       parseFloat(vn('refrig-total-dispo'))|| null,
+    req_cong:           parseFloat(g('req-cong'))           || null,
+    total_cong:         parseFloat(vn('cong-total-dispo'))  || null,
+    cap_plus5_req:      parseFloat(g('cap-plus5-req'))      || null,
+    cap_plus5:          parseFloat(g('cap-plus5'))          || null,
+    cap_minus20_req:    parseFloat(g('cap-minus20-req'))    || null,
+    cap_minus20:        parseFloat(g('cap-minus20'))        || null,
   };
 }
 
@@ -2196,10 +2227,10 @@ function buildReview() {
 
   // Passifs
   const passifRows = [
-    ['Glacière standard', text('req-glaciere-std'), g('dispo-glaciere-std'), text('gap-glaciere-std'), g('etat-glaciere-std') + '%'],
-    ['Glacière campagne VPOb', text('req-glaciere-camp'), g('dispo-glaciere-camp'), text('gap-glaciere-camp'), g('etat-glaciere-camp') + '%'],
-    ['Porte-vaccins', text('req-pv'), g('dispo-pv'), text('gap-pv'), g('etat-pv') + '%'],
-    ['Accumulateurs de froid', text('req-acc'), g('dispo-acc'), text('gap-acc'), g('etat-acc') + '%'],
+    ['Glacière standard', g('req-glaciere-std'), g('dispo-glaciere-std'), document.getElementById('gap-glaciere-std')?.textContent||'—', g('etat-glaciere-std') + '%'],
+    ['Glacière campagne VPOb', g('req-glaciere-camp'), g('dispo-glaciere-camp'), document.getElementById('gap-glaciere-camp')?.textContent||'—', g('etat-glaciere-camp') + '%'],
+    ['Porte-vaccins', g('req-pv'), g('dispo-pv'), document.getElementById('gap-pv')?.textContent||'—', g('etat-pv') + '%'],
+    ['Accumulateurs de froid', g('req-acc'), g('dispo-acc'), document.getElementById('gap-acc')?.textContent||'—', g('etat-acc') + '%'],
   ];
   document.getElementById('review-passifs').innerHTML = passifRows.map(r =>
     `<tr>${r.map((c,i) => `<td${i===3 ? gapClass(c) : ''}>${c}</td>`).join('')}</tr>`
@@ -2213,8 +2244,8 @@ function buildReview() {
   const totalCongDispo    = vn('cong-total-dispo');
   const totalCongFonct    = vn('cong-total-fonct');
   const totalCongCap      = vn('cong-total-cap');
-  const reqRefrig         = vn('req-refrig');
-  const reqCong           = vn('req-cong');
+  const reqRefrig         = g('req-refrig');
+  const reqCong           = g('req-cong');
   const gapRefrig         = vn('gap-refrig');
   const gapCong           = vn('gap-cong');
 
@@ -2259,27 +2290,27 @@ function buildDashboard() {
   }
 
   // --- Collect data ---
-  const reqGlacStd  = num('req-glaciere-std');
+  const reqGlacStd  = numg('req-glaciere-std');
   const dispoGlacStd  = numg('dispo-glaciere-std');
   const gapGlacStd  = dispoGlacStd - reqGlacStd;
   const etatGlacStd = numg('etat-glaciere-std') || 100;
 
-  const reqGlacCamp = num('req-glaciere-camp');
+  const reqGlacCamp = numg('req-glaciere-camp');
   const dispoGlacCamp = numg('dispo-glaciere-camp');
   const gapGlacCamp = dispoGlacCamp - reqGlacCamp;
   const etatGlacCamp = numg('etat-glaciere-camp') || 100;
 
-  const reqPV    = num('req-pv');
+  const reqPV    = numg('req-pv');
   const dispoPV  = numg('dispo-pv');
   const gapPV    = dispoPV - reqPV;
   const etatPV   = numg('etat-pv') || 100;
 
-  const reqAcc   = num('req-acc');
+  const reqAcc   = numg('req-acc');
   const dispoAcc = numg('dispo-acc');
   const gapAcc   = dispoAcc - reqAcc;
   const etatAcc  = numg('etat-acc') || 100;
 
-  const reqRefrig    = num('req-refrig');
+  const reqRefrig    = numg('req-refrig');
   const totalRefrig  = parseFloat(vn('refrig-total-dispo')) || 0;
   const fonctRefrig  = parseFloat(vn('refrig-total-fonct')) || 0;
   const capRefrig    = parseFloat(vn('refrig-total-cap'))   || 0;
@@ -2288,7 +2319,7 @@ function buildDashboard() {
   const elecRefrig   = numg('refrig-elec-dispo');
   const petRefrig    = numg('refrig-pet-dispo');
 
-  const reqCong      = num('req-cong');
+  const reqCong      = numg('req-cong');
   const totalCong    = parseFloat(vn('cong-total-dispo'))  || 0;
   const fonctCong    = parseFloat(vn('cong-total-fonct'))  || 0;
   const capCong      = parseFloat(vn('cong-total-cap'))    || 0;
@@ -2515,30 +2546,30 @@ function collectData() {
     nb_equipes: g('nb-equipes'),
     source_donnees: g('data-source'),
     // ECF Passifs
-    req_glaciere_std: t('req-glaciere-std'),
+    req_glaciere_std: g('req-glaciere-std'),
     dispo_glaciere_std: g('dispo-glaciere-std'),
-    gap_glaciere_std: t('gap-glaciere-std'),
+    gap_glaciere_std: document.getElementById('gap-glaciere-std')?.textContent?.trim() || '',
     etat_glaciere_std: g('etat-glaciere-std'),
     comm_glaciere_std: g('comm-glaciere-std'),
-    req_glaciere_camp: t('req-glaciere-camp'),
+    req_glaciere_camp: g('req-glaciere-camp'),
     dispo_glaciere_camp: g('dispo-glaciere-camp'),
-    gap_glaciere_camp: t('gap-glaciere-camp'),
+    gap_glaciere_camp: document.getElementById('gap-glaciere-camp')?.textContent?.trim() || '',
     etat_glaciere_camp: g('etat-glaciere-camp'),
     comm_glaciere_camp: g('comm-glaciere-camp'),
-    req_pv: t('req-pv'),
+    req_pv: g('req-pv'),
     dispo_pv: g('dispo-pv'),
-    gap_pv: t('gap-pv'),
+    gap_pv: document.getElementById('gap-pv')?.textContent?.trim() || '',
     etat_pv: g('etat-pv'),
     comm_pv: g('comm-pv'),
-    req_acc: t('req-acc'),
+    req_acc: g('req-acc'),
     dispo_acc: g('dispo-acc'),
-    gap_acc: t('gap-acc'),
+    gap_acc: document.getElementById('gap-acc')?.textContent?.trim() || '',
     etat_acc: g('etat-acc'),
     comm_acc: g('comm-acc'),
     obs_passifs: g('obs-passifs'),
     // ECF Actifs — Réfrigérateurs par source d'énergie
-    req_refrig:           t('req-refrig'),
-    gap_refrig:           t('gap-refrig'),
+    req_refrig:           g('req-refrig'),
+    gap_refrig:           document.getElementById('gap-refrig')?.textContent?.trim() || '',
     refrig_sol_dispo:     g('refrig-sol-dispo'),
     refrig_sol_fonct:     g('refrig-sol-fonct'),
     refrig_sol_cap:       g('refrig-sol-cap'),
@@ -2558,8 +2589,8 @@ function collectData() {
     refrig_total_fonct:   document.getElementById('refrig-total-fonct').textContent,
     refrig_total_cap:     document.getElementById('refrig-total-cap').textContent,
     // ECF Actifs — Congélateurs par source d'énergie
-    req_cong:             t('req-cong'),
-    gap_cong:             t('gap-cong'),
+    req_cong:             g('req-cong'),
+    gap_cong:             document.getElementById('gap-cong')?.textContent?.trim() || '',
     cong_sol_dispo:       g('cong-sol-dispo'),
     cong_sol_fonct:       g('cong-sol-fonct'),
     cong_sol_cap:         g('cong-sol-cap'),
@@ -2660,19 +2691,16 @@ function resetForm() {
   // Reset today's date
   document.getElementById('collect-date').value = new Date().toISOString().split('T')[0];
 
-  // Reset calculated display cells
-  ['req-glaciere-std','req-glaciere-camp','req-pv','req-acc','req-refrig','req-cong',
-   'gap-glaciere-std','gap-glaciere-camp','gap-pv','gap-acc','gap-refrig','gap-cong',
-   'refrig-total-dispo','refrig-total-fonct','refrig-total-cap',
+  // Reset calculated gap display spans
+  ['gap-glaciere-std','gap-glaciere-camp','gap-pv','gap-acc','gap-refrig','gap-cong'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.className = 'calc-cell calc-neutral'; }
+  });
+  // Reset active equipment totals
+  ['refrig-total-dispo','refrig-total-fonct','refrig-total-cap',
    'cong-total-dispo','cong-total-fonct','cong-total-cap'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      if (el.tagName === 'SPAN') { el.textContent = id.startsWith('gap') ? '—' : '0'; }
-    }
-  });
-  ['req-glaciere-std','req-glaciere-camp','req-pv','req-acc'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = '—';
+    if (el && el.tagName === 'SPAN') el.textContent = '0';
   });
 
   // Reset load indicators
@@ -2700,11 +2728,83 @@ function resetForm() {
 }
 
 // ============================================================
-// TABLEAU DE BORD NATIONAL
+// CHARGEMENT DE TOUS LES DISTRICTS DEPUIS GOOGLE SHEETS
+// (pour le tableau national)
 // ============================================================
+let allDistrictsLoaded = false;
+
+async function loadAllDistrictsFromSheet() {
+  const gsUrl     = document.getElementById('gs-url').value.trim();
+  const sheetName = document.getElementById('gs-sheet').value.trim() || 'Inventaire_Districts';
+
+  if (!gsUrl) return;
+
+  const statusEl = document.getElementById('nat-load-status');
+  if (statusEl) { statusEl.textContent = '⏳ Chargement des données depuis Google Sheets...'; statusEl.style.display = 'block'; }
+
+  try {
+    const url = `${gsUrl}?action=getAllDistricts&sheet=${encodeURIComponent(sheetName)}`;
+    const res  = await fetch(url);
+    const json = await res.json();
+
+    if (json.status === 'success' && json.districts) {
+      // Injecter chaque district dans sessionSubmissions
+      Object.entries(json.districts).forEach(([districtName, entry]) => {
+        const d = entry.data;
+        const n = v => { const f = parseFloat(v); return isNaN(f) ? null : f; };
+        sessionSubmissions[districtName] = {
+          region:             d['Région']                      || '',
+          req_glaciere_std:   n(d['Req. Glacière Standard']),
+          dispo_glaciere_std: n(d['Dispo. Glacière Standard']),
+          req_pv:             n(d['Req. Porte-Vaccins']),
+          dispo_pv:           n(d['Dispo. Porte-Vaccins']),
+          req_acc:            n(d['Req. Accumulateurs']),
+          dispo_acc:          n(d['Dispo. Accumulateurs']),
+          req_refrig:         n(d['Req. Réfrigérateurs']),
+          total_refrig:       n(d['Réfrig. TOTAL - Qté']),
+          req_cong:           n(d['Req. Congélateurs']),
+          total_cong:         n(d['Congél. TOTAL - Qté']),
+          cap_plus5_req:      n(d['Capacité +5°C Requise (L)']),
+          cap_plus5:          n(d['Capacité +5°C Disponible (L)']),
+          cap_minus20_req:    n(d['Capacité -20°C Requise (L)']),
+          cap_minus20:        n(d['Capacité -20°C Disponible (L)']),
+          rowIndex:           entry.rowIndex,
+        };
+      });
+      allDistrictsLoaded = true;
+      if (statusEl) {
+        statusEl.textContent = `✅ ${json.count} districts chargés depuis Google Sheets.`;
+        statusEl.style.background = '#e8f5ee'; statusEl.style.color = '#0a3d2b';
+        statusEl.style.borderColor = '#a8d5ba';
+        setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+      }
+    } else {
+      if (statusEl) { statusEl.textContent = '⚠️ Aucune donnée trouvée dans Google Sheets.'; }
+    }
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = `❌ Erreur de chargement : ${err.message}`; statusEl.style.color = '#c0392b'; }
+  }
+}
+
+
 let natTableData = []; // cache for filtering
 
 function buildNationalTable() {
+  // Snapshot current form data (even if not yet submitted)
+  const currentDistrict = document.getElementById('district')?.value;
+  if (currentDistrict) saveSessionSubmission();
+
+  // Load from Google Sheets if not yet done
+  if (!allDistrictsLoaded) {
+    loadAllDistrictsFromSheet().then(() => {
+      _buildNationalTableCore();
+    });
+  } else {
+    _buildNationalTableCore();
+  }
+}
+
+function _buildNationalTableCore() {
   // Populate region filter
   const regionFilter = document.getElementById('nat-region-filter');
   const currentReg = regionFilter.value;
@@ -2766,6 +2866,14 @@ function buildNationalTable() {
     districts.sort().forEach(districtName => {
       const ref = DISTRICT_DATA[districtName] || {};
       const sub = sessionSubmissions[districtName] || null;
+      // Use session submission req values if available (user may have modified them), else fall back to Excel
+      const reqGlac   = (sub && sub.req_glaciere_std  != null) ? sub.req_glaciere_std   : (ref.req_glaciere_std  || 2);
+      const reqPV     = (sub && sub.req_pv            != null) ? sub.req_pv             : Math.ceil(ref.nb_equipes || 0);
+      const reqAcc    = (sub && sub.req_acc           != null) ? sub.req_acc            : Math.ceil(ref.nb_equipes || 0) * 4;
+      const reqRefrig = (sub && sub.req_refrig        != null) ? sub.req_refrig         : (ref.req_refrig || 0);
+      const reqCong   = (sub && sub.req_cong          != null) ? sub.req_cong           : (ref.req_cong   || 0);
+      const cap5req   = (sub && sub.cap_plus5_req     != null) ? sub.cap_plus5_req      : (ref.cap_plus5_req   || 0);
+      const cap20req  = (sub && sub.cap_minus20_req   != null) ? sub.cap_minus20_req    : (ref.cap_minus20_req || 0);
       natTableData.push({
         type: 'district',
         region,
@@ -2774,22 +2882,16 @@ function buildNationalTable() {
         pop:    ref.pop_cible   || 0,
         fs:     ref.nb_fs       || 0,
         eq:     ref.nb_equipes  || 0,
-        // Besoins (from Excel)
-        reqGlac:   ref.req_glaciere_std || 2,
-        reqPV:     Math.ceil(ref.nb_equipes || 0),
-        reqAcc:    Math.ceil(ref.nb_equipes || 0) * 4,
-        reqRefrig: ref.req_refrig || 0,
-        reqCong:   ref.req_cong  || 0,
-        cap5req:   ref.cap_plus5_req  || 0,
-        cap20req:  ref.cap_minus20_req || 0,
+        // Besoins (merged: session > Excel)
+        reqGlac, reqPV, reqAcc, reqRefrig, reqCong, cap5req, cap20req,
         // Disponible (from session submissions)
         dispoGlac:   sub ? sub.dispo_glaciere_std  : null,
-        dispoPV:     sub ? sub.dispo_pv             : null,
-        dispoAcc:    sub ? sub.dispo_acc            : null,
-        dispoRefrig: sub ? sub.total_refrig         : null,
-        dispoCong:   sub ? sub.total_cong           : null,
-        cap5dispo:   sub ? sub.cap_plus5            : null,
-        cap20dispo:  sub ? sub.cap_minus20          : null,
+        dispoPV:     sub ? sub.dispo_pv            : null,
+        dispoAcc:    sub ? sub.dispo_acc           : null,
+        dispoRefrig: sub ? sub.total_refrig        : null,
+        dispoCong:   sub ? sub.total_cong          : null,
+        cap5dispo:   sub ? sub.cap_plus5           : null,
+        cap20dispo:  sub ? sub.cap_minus20         : null,
       });
     });
   });
