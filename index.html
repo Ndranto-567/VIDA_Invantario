@@ -1687,7 +1687,7 @@
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="goToStep(5)">‹ Tableau district</button>
-      <button class="btn btn-secondary" onclick="allDistrictsLoaded=false; buildNationalTable()">☁️ Recharger depuis Sheets</button>
+      <button class="btn btn-secondary" onclick="sheetsDataLoaded=false; buildNationalTable()">☁️ Recharger depuis Sheets</button>
       <button class="btn btn-primary" onclick="buildNationalTable()">🔄 Actualiser</button>
     </div>
   </div>
@@ -1923,7 +1923,13 @@ async function loadDistrictData() {
     const sheetName = document.getElementById('gs-sheet').value.trim() || 'Inventaire_Districts';
     const url = gsUrl + '?action=getDistrict&district=' + encodeURIComponent(district) + '&sheet=' + encodeURIComponent(sheetName);
     const res  = await fetch(url);
-    const json = await res.json();
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) {
+      document.getElementById('load-indicator').style.display = 'none';
+      document.getElementById('load-new').style.display = 'block';
+      submitMode = 'new'; unlockForm(); return;
+    }
 
     document.getElementById('load-indicator').style.display = 'none';
 
@@ -2731,175 +2737,213 @@ function resetForm() {
 // CHARGEMENT DE TOUS LES DISTRICTS DEPUIS GOOGLE SHEETS
 // (pour le tableau national)
 // ============================================================
-let allDistrictsLoaded = false;
+// ============================================================
+// TABLEAU NATIONAL — Données chargées directement depuis Google Sheets
+// Totalement indépendant du formulaire de saisie
+// ============================================================
+let sheetsData = {};
+let sheetsDataLoaded = false;
 
-async function loadAllDistrictsFromSheet() {
+async function loadSheetsData() {
   const gsUrl     = document.getElementById('gs-url').value.trim();
   const sheetName = document.getElementById('gs-sheet').value.trim() || 'Inventaire_Districts';
+  const statusEl  = document.getElementById('nat-load-status');
 
-  if (!gsUrl) return;
+  const show = (msg, color, bg, border) => {
+    color  = color  || '#7d5a00';
+    bg     = bg     || '#fff8e1';
+    border = border || '#ffe082';
+    if (statusEl) {
+      statusEl.textContent = msg;
+      statusEl.style.cssText = 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:500;background:' + bg + ';border:1px solid ' + border + ';color:' + color + ';margin-bottom:14px;';
+    }
+  };
 
-  const statusEl = document.getElementById('nat-load-status');
-  if (statusEl) { statusEl.textContent = '⏳ Chargement des données depuis Google Sheets...'; statusEl.style.display = 'block'; }
+  if (!gsUrl) {
+    show("⚠️ URL Google Apps Script non configurée. Renseignez-la à l'étape 4.");
+    return false;
+  }
+
+  show('⏳ Chargement des données depuis Google Sheets...');
 
   try {
-    const url = `${gsUrl}?action=getAllDistricts&sheet=${encodeURIComponent(sheetName)}`;
+    const url = gsUrl + '?action=getAllDistricts&sheet=' + encodeURIComponent(sheetName);
     const res  = await fetch(url);
-    const json = await res.json();
+    const text = await res.text();  // Always read as text first
+
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (parseErr) {
+      show('❌ Réponse inattendue du serveur (pas du JSON). Vérifiez que le script Apps Script est bien déployé et que l\'URL est correcte.', '#c0392b', '#fdf2f2', '#f5c6c6');
+      console.error('Response was:', text.substring(0, 200));
+      return false;
+    }
 
     if (json.status === 'success' && json.districts) {
-      // Injecter chaque district dans sessionSubmissions
-      Object.entries(json.districts).forEach(([districtName, entry]) => {
-        const d = entry.data;
-        const n = v => { const f = parseFloat(v); return isNaN(f) ? null : f; };
-        sessionSubmissions[districtName] = {
-          region:             d['Région']                      || '',
-          req_glaciere_std:   n(d['Req. Glacière Standard']),
-          dispo_glaciere_std: n(d['Dispo. Glacière Standard']),
-          req_pv:             n(d['Req. Porte-Vaccins']),
-          dispo_pv:           n(d['Dispo. Porte-Vaccins']),
-          req_acc:            n(d['Req. Accumulateurs']),
-          dispo_acc:          n(d['Dispo. Accumulateurs']),
-          req_refrig:         n(d['Req. Réfrigérateurs']),
-          total_refrig:       n(d['Réfrig. TOTAL - Qté']),
-          req_cong:           n(d['Req. Congélateurs']),
-          total_cong:         n(d['Congél. TOTAL - Qté']),
-          cap_plus5_req:      n(d['Capacité +5°C Requise (L)']),
-          cap_plus5:          n(d['Capacité +5°C Disponible (L)']),
-          cap_minus20_req:    n(d['Capacité -20°C Requise (L)']),
-          cap_minus20:        n(d['Capacité -20°C Disponible (L)']),
-          rowIndex:           entry.rowIndex,
+      sheetsData = {};
+      const n = function(v) { var f = parseFloat(v); return (v !== '' && !isNaN(f)) ? f : null; };
+      Object.entries(json.districts).forEach(function(entry) {
+        var districtName = entry[0];
+        var row = entry[1];
+        var d = row.data;
+        sheetsData[districtName] = {
+          region:              d['Région']                          || '',
+          nb_fs:               n(d['Nombre FS'])   != null ? n(d['Nombre FS'])   : n(d['Nombre FOSA / CSB']),
+          nb_equipes:          n(d['Nombre Équipes']),
+          req_glaciere_std:    n(d['Req. Glacière Standard']),
+          dispo_glaciere_std:  n(d['Dispo. Glacière Standard']),
+          etat_glaciere_std:   n(d['État Glacière Standard (%)']),
+          req_glaciere_camp:   n(d['Req. Glacière Campagne']),
+          dispo_glaciere_camp: n(d['Dispo. Glacière Campagne']),
+          req_pv:              n(d['Req. Porte-Vaccins']),
+          dispo_pv:            n(d['Dispo. Porte-Vaccins']),
+          etat_pv:             n(d['État Porte-Vaccins (%)']),
+          req_acc:             n(d['Req. Accumulateurs']),
+          dispo_acc:           n(d['Dispo. Accumulateurs']),
+          req_refrig:          n(d['Req. Réfrigérateurs']),
+          total_refrig:        n(d['Réfrig. TOTAL - Qté']),
+          fonct_refrig:        n(d['Réfrig. TOTAL - Fonct.']),
+          req_cong:            n(d['Req. Congélateurs']),
+          total_cong:          n(d['Congél. TOTAL - Qté']),
+          fonct_cong:          n(d['Congél. TOTAL - Fonct.']),
+          cap_plus5_req:       n(d['Capacité +5°C Requise (L)']),
+          cap_plus5:           n(d['Capacité +5°C Disponible (L)']),
+          cap_minus20_req:     n(d['Capacité -20°C Requise (L)']),
+          cap_minus20:         n(d['Capacité -20°C Disponible (L)']),
+          date_collecte:       d['Date Collecte'] || '',
         };
       });
-      allDistrictsLoaded = true;
-      if (statusEl) {
-        statusEl.textContent = `✅ ${json.count} districts chargés depuis Google Sheets.`;
-        statusEl.style.background = '#e8f5ee'; statusEl.style.color = '#0a3d2b';
-        statusEl.style.borderColor = '#a8d5ba';
-        setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
-      }
+      sheetsDataLoaded = true;
+      var count = Object.keys(sheetsData).length;
+      show('✅ ' + count + ' district(s) chargé(s) depuis Google Sheets.', '#0a3d2b', '#e8f5ee', '#a8d5ba');
+      setTimeout(function() { if (statusEl) statusEl.style.display = 'none'; }, 4000);
+      return true;
     } else {
-      if (statusEl) { statusEl.textContent = '⚠️ Aucune donnée trouvée dans Google Sheets.'; }
+      show('⚠️ Aucune donnée trouvée dans Google Sheets.');
+      return false;
     }
   } catch (err) {
-    if (statusEl) { statusEl.textContent = `❌ Erreur de chargement : ${err.message}`; statusEl.style.color = '#c0392b'; }
+    show('❌ Erreur : ' + err.message, '#c0392b', '#fdf2f2', '#f5c6c6');
+    return false;
   }
 }
 
-
-let natTableData = []; // cache for filtering
+var natTableData = [];
 
 function buildNationalTable() {
-  // Snapshot current form data (even if not yet submitted)
-  const currentDistrict = document.getElementById('district')?.value;
-  if (currentDistrict) saveSessionSubmission();
-
-  // Render immediately with whatever data is available (DISTRICT_DATA + sessionSubmissions)
-  _buildNationalTableCore();
-
-  // Refresh from Google Sheets in background if not yet loaded
-  if (!allDistrictsLoaded) {
-    loadAllDistrictsFromSheet().then(() => {
-      _buildNationalTableCore();
-    });
-  }
+  // Ce tableau charge DIRECTEMENT depuis Google Sheets
+  // Il ne dépend pas du formulaire de saisie
+  loadSheetsData().then(function() {
+    _buildNationalTableCore();
+  });
 }
 
 function _buildNationalTableCore() {
-  // Populate region filter
-  const regionFilter = document.getElementById('nat-region-filter');
-  const currentReg = regionFilter.value;
+  var regionFilter = document.getElementById('nat-region-filter');
+  var currentReg = regionFilter.value;
   regionFilter.innerHTML = '<option value="">Toutes les régions</option>';
-  Object.keys(REGION_DISTRICTS).sort().forEach(r => {
-    const opt = document.createElement('option');
+  Object.keys(REGION_DISTRICTS).sort().forEach(function(r) {
+    var opt = document.createElement('option');
     opt.value = r; opt.textContent = r.replace('DRSP ', '');
     if (r === currentReg) opt.selected = true;
     regionFilter.appendChild(opt);
   });
 
-  // Compute national KPIs from DISTRICT_DATA
-  let totalDistricts = 0, totalFS = 0, totalEquipes = 0, totalReqRefrig = 0, totalReqPV = 0;
-  let totalReqAcc = 0, totalReqCong = 0, submittedCount = Object.keys(sessionSubmissions).length;
-  Object.values(DISTRICT_DATA).forEach(d => {
-    totalDistricts++;
-    totalFS      += d.nb_fs       || 0;
-    totalEquipes += d.nb_equipes  || 0;
+  // KPIs nationaux
+  var totalFS = 0, totalEquipes = 0, totalReqRefrig = 0, totalReqCong = 0;
+  var totalDistricts = Object.keys(DISTRICT_DATA).length;
+  Object.values(DISTRICT_DATA).forEach(function(d) {
+    totalFS       += d.nb_fs      || 0;
+    totalEquipes  += d.nb_equipes || 0;
     totalReqRefrig += d.req_refrig || 0;
     totalReqCong   += d.req_cong  || 0;
-    totalReqPV     += Math.ceil(d.nb_equipes || 0);
-    totalReqAcc    += Math.ceil(d.nb_equipes || 0) * 4;
   });
+  var sheetsCount = Object.keys(sheetsData).length;
 
-  // KPI cards
-  const kpiData = [
+  document.getElementById('nat-kpi-row').innerHTML = [
     { val: totalDistricts, lbl: 'Districts', sub: '22 régions', cls: 'kpi-blue' },
-    { val: totalFS.toLocaleString('fr'), lbl: 'FS nationales', sub: 'Formation Sanitaires', cls: 'kpi-info' },
+    { val: totalFS.toLocaleString('fr'), lbl: 'FS nationales', sub: 'Référence Excel 2026', cls: 'kpi-info' },
     { val: Math.round(totalEquipes).toLocaleString('fr'), lbl: 'Équipes vacc.', sub: 'Total national', cls: 'kpi-blue' },
     { val: totalReqRefrig.toLocaleString('fr'), lbl: 'Réfrig. requis', sub: 'Besoin national', cls: 'kpi-info' },
-    { val: submittedCount, lbl: 'Districts saisis', sub: `sur ${totalDistricts} (session)`, cls: submittedCount > 0 ? 'kpi-ok' : 'kpi-info' },
-  ];
-  document.getElementById('nat-kpi-row').innerHTML = kpiData.map(k =>
-    `<div class="db-kpi ${k.cls}"><div class="kpi-val">${k.val}</div><div class="kpi-lbl">${k.lbl}</div><div class="kpi-sub">${k.sub}</div></div>`
-  ).join('');
+    { val: sheetsCount, lbl: 'Districts dans Sheets', sub: 'sur ' + totalDistricts + ' districts', cls: sheetsCount > 0 ? 'kpi-ok' : 'kpi-info' },
+  ].map(function(k) {
+    return '<div class="db-kpi ' + k.cls + '"><div class="kpi-val">' + k.val + '</div><div class="kpi-lbl">' + k.lbl + '</div><div class="kpi-sub">' + k.sub + '</div></div>';
+  }).join('');
 
-  // Build table rows data
   natTableData = [];
-  Object.entries(REGION_DISTRICTS).sort((a,b) => a[0].localeCompare(b[0])).forEach(([region, districts]) => {
-    // Region summary row
-    const regDistricts = districts.map(d => DISTRICT_DATA[d]).filter(Boolean);
+  Object.entries(REGION_DISTRICTS).sort(function(a,b) { return a[0].localeCompare(b[0]); }).forEach(function(regEntry) {
+    var region = regEntry[0];
+    var districts = regEntry[1];
+    var regRef = districts.map(function(d) { return DISTRICT_DATA[d]; }).filter(Boolean);
+
+    // Ligne région
+    var regDispoGlac=0, regDispoPV=0, regDispoAcc=0, regDispoRefrig=0, regDispoCong=0, regHasDispo=false;
+    districts.forEach(function(dn) {
+      var s = sheetsData[dn];
+      if (s) {
+        regHasDispo = true;
+        regDispoGlac   += s.dispo_glaciere_std || 0;
+        regDispoPV     += s.dispo_pv           || 0;
+        regDispoAcc    += s.dispo_acc          || 0;
+        regDispoRefrig += s.total_refrig       || 0;
+        regDispoCong   += s.total_cong         || 0;
+      }
+    });
     natTableData.push({
-      type: 'region',
-      region,
-      label: region.replace('DRSP ', ''),
+      type: 'region', region: region, label: region.replace('DRSP ', ''),
       nbDistricts: districts.length,
-      totalFS: regDistricts.reduce((s, d) => s + (d.nb_fs || 0), 0),
-      totalEq: regDistricts.reduce((s, d) => s + (d.nb_equipes || 0), 0),
-      reqGlac: regDistricts.reduce((s, d) => s + (d.req_glaciere_std || 0), 0),
-      reqPV:   regDistricts.reduce((s, d) => s + Math.ceil(d.nb_equipes || 0), 0),
-      reqAcc:  regDistricts.reduce((s, d) => s + Math.ceil(d.nb_equipes || 0) * 4, 0),
-      reqRefrig: regDistricts.reduce((s, d) => s + (d.req_refrig || 0), 0),
-      reqCong:   regDistricts.reduce((s, d) => s + (d.req_cong || 0), 0),
-      cap5req:   regDistricts.reduce((s, d) => s + (d.cap_plus5_req || 0), 0),
-      cap20req:  regDistricts.reduce((s, d) => s + (d.cap_minus20_req || 0), 0),
+      nbSaisis: districts.filter(function(dn) { return !!sheetsData[dn]; }).length,
+      totalFS:   regRef.reduce(function(s,d) { return s+(d.nb_fs||0); }, 0),
+      totalEq:   regRef.reduce(function(s,d) { return s+(d.nb_equipes||0); }, 0),
+      reqGlac:   regRef.reduce(function(s,d) { return s+(d.req_glaciere_std||2); }, 0),
+      reqPV:     regRef.reduce(function(s,d) { return s+Math.ceil(d.nb_equipes||0); }, 0),
+      reqAcc:    regRef.reduce(function(s,d) { return s+Math.ceil(d.nb_equipes||0)*4; }, 0),
+      reqRefrig: regRef.reduce(function(s,d) { return s+(d.req_refrig||0); }, 0),
+      reqCong:   regRef.reduce(function(s,d) { return s+(d.req_cong||0); }, 0),
+      cap5req:   regRef.reduce(function(s,d) { return s+(d.cap_plus5_req||0); }, 0),
+      cap20req:  regRef.reduce(function(s,d) { return s+(d.cap_minus20_req||0); }, 0),
+      hasDispo: regHasDispo,
+      dispoGlac:   regHasDispo ? regDispoGlac   : null,
+      dispoPV:     regHasDispo ? regDispoPV     : null,
+      dispoAcc:    regHasDispo ? regDispoAcc    : null,
+      dispoRefrig: regHasDispo ? regDispoRefrig : null,
+      dispoCong:   regHasDispo ? regDispoCong   : null,
     });
 
-    // District rows
-    districts.sort().forEach(districtName => {
-      const ref = DISTRICT_DATA[districtName] || {};
-      const sub = sessionSubmissions[districtName] || null;
-      // Use session submission req values if available (user may have modified them), else fall back to Excel
-      const reqGlac   = (sub && sub.req_glaciere_std  != null) ? sub.req_glaciere_std   : (ref.req_glaciere_std  || 2);
-      const reqPV     = (sub && sub.req_pv            != null) ? sub.req_pv             : Math.ceil(ref.nb_equipes || 0);
-      const reqAcc    = (sub && sub.req_acc           != null) ? sub.req_acc            : Math.ceil(ref.nb_equipes || 0) * 4;
-      const reqRefrig = (sub && sub.req_refrig        != null) ? sub.req_refrig         : (ref.req_refrig || 0);
-      const reqCong   = (sub && sub.req_cong          != null) ? sub.req_cong           : (ref.req_cong   || 0);
-      const cap5req   = (sub && sub.cap_plus5_req     != null) ? sub.cap_plus5_req      : (ref.cap_plus5_req   || 0);
-      const cap20req  = (sub && sub.cap_minus20_req   != null) ? sub.cap_minus20_req    : (ref.cap_minus20_req || 0);
+    // Lignes district
+    districts.slice().sort().forEach(function(districtName) {
+      var ref = DISTRICT_DATA[districtName] || {};
+      var s   = sheetsData[districtName]   || null;
+      var reqGlac   = (s && s.req_glaciere_std  != null) ? s.req_glaciere_std  : (ref.req_glaciere_std  || 2);
+      var reqPV     = (s && s.req_pv            != null) ? s.req_pv            : Math.ceil(ref.nb_equipes||0);
+      var reqAcc    = (s && s.req_acc           != null) ? s.req_acc           : Math.ceil(ref.nb_equipes||0)*4;
+      var reqRefrig = (s && s.req_refrig        != null) ? s.req_refrig        : (ref.req_refrig||0);
+      var reqCong   = (s && s.req_cong          != null) ? s.req_cong          : (ref.req_cong||0);
+      var cap5req   = (s && s.cap_plus5_req     != null) ? s.cap_plus5_req     : (ref.cap_plus5_req||0);
+      var cap20req  = (s && s.cap_minus20_req   != null) ? s.cap_minus20_req   : (ref.cap_minus20_req||0);
+      var fs        = (s && s.nb_fs     != null) ? s.nb_fs     : (ref.nb_fs||0);
+      var eq        = (s && s.nb_equipes!= null) ? s.nb_equipes: (ref.nb_equipes||0);
       natTableData.push({
-        type: 'district',
-        region,
-        label: districtName,
-        submitted: !!sub,
-        pop:    ref.pop_cible   || 0,
-        fs:     ref.nb_fs       || 0,
-        eq:     ref.nb_equipes  || 0,
-        // Besoins (merged: session > Excel)
-        reqGlac, reqPV, reqAcc, reqRefrig, reqCong, cap5req, cap20req,
-        // Disponible (from session submissions)
-        dispoGlac:   sub ? sub.dispo_glaciere_std  : null,
-        dispoPV:     sub ? sub.dispo_pv            : null,
-        dispoAcc:    sub ? sub.dispo_acc           : null,
-        dispoRefrig: sub ? sub.total_refrig        : null,
-        dispoCong:   sub ? sub.total_cong          : null,
-        cap5dispo:   sub ? sub.cap_plus5           : null,
-        cap20dispo:  sub ? sub.cap_minus20         : null,
+        type: 'district', region: region, label: districtName,
+        submitted: !!s,
+        dateCollecte: (s && s.date_collecte) || '',
+        pop: ref.pop_cible||0, fs: fs, eq: eq,
+        reqGlac: reqGlac, reqPV: reqPV, reqAcc: reqAcc, reqRefrig: reqRefrig, reqCong: reqCong,
+        cap5req: cap5req, cap20req: cap20req,
+        dispoGlac:   s ? s.dispo_glaciere_std  : null,
+        dispoPV:     s ? s.dispo_pv            : null,
+        dispoAcc:    s ? s.dispo_acc           : null,
+        dispoRefrig: s ? s.total_refrig        : null,
+        dispoCong:   s ? s.total_cong          : null,
+        cap5dispo:   s ? s.cap_plus5           : null,
+        cap20dispo:  s ? s.cap_minus20         : null,
       });
     });
   });
 
   renderNatTable(natTableData);
 }
-
 function renderNatTable(rows) {
   const fmt = (n, decimals=0) => n !== null && !isNaN(n) ? (decimals ? parseFloat(n).toFixed(decimals) : Math.round(n).toLocaleString('fr')) : '<span class="nat-no-data">—</span>';
   const fmtEq = n => n ? parseFloat(n).toFixed(2) : '<span class="nat-no-data">—</span>';
@@ -2996,23 +3040,22 @@ function filterNatTable() {
   const region  = document.getElementById('nat-region-filter').value;
   const onlySub = document.getElementById('nat-only-submitted').checked;
 
-  if (!natTableData.length) buildNationalTable();
+  if (!natTableData.length) { buildNationalTable(); return; }
 
-  // Determine which regions have matching districts
   const matchingRegions = new Set();
   natTableData.filter(r => r.type === 'district').forEach(r => {
-    const matchSearch = !search || r.label.toLowerCase().includes(search) || r.region.toLowerCase().includes(search);
-    const matchRegion = !region || r.region === region;
-    const matchSub    = !onlySub || r.submitted;
-    if (matchSearch && matchRegion && matchSub) matchingRegions.add(r.region);
+    const ok = (!search || r.label.toLowerCase().includes(search) || r.region.toLowerCase().includes(search))
+            && (!region  || r.region === region)
+            && (!onlySub || r.submitted);
+    if (ok) matchingRegions.add(r.region);
   });
 
   const filtered = natTableData.filter(r => {
     if (r.type === 'region') return matchingRegions.has(r.region);
-    const matchSearch = !search || r.label.toLowerCase().includes(search) || r.region.toLowerCase().includes(search);
-    const matchRegion = !region || r.region === region;
-    const matchSub    = !onlySub || r.submitted;
-    return matchSearch && matchRegion && matchSub && matchingRegions.has(r.region);
+    return (!search  || r.label.toLowerCase().includes(search) || r.region.toLowerCase().includes(search))
+        && (!region  || r.region === region)
+        && (!onlySub || r.submitted)
+        && matchingRegions.has(r.region);
   });
 
   renderNatTable(filtered);
