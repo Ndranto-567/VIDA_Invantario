@@ -1541,7 +1541,7 @@
         </div>
 
         <!-- Google Sheets Config (hidden) -->
-        <div class="gs-config" id="gs-config-section" style="display:none;">
+        <div class="gs-config" id="gs-config-section" style="display:block;">
           <h3>⚙️ Configuration Google Sheets</h3>
           <div class="form-grid">
             <div class="field">
@@ -3232,98 +3232,5 @@ function doGet(e) {
   document.getElementById('apps-script-code').textContent = script;
 }
 </script>
-<script>
-
-// ===============================
-// CONFIGURATION
-// ===============================
-
-const CSV_URL =
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vQrYd89QVrOQ_EqJWmkcf71_uoG_pynf8PDFl51PJWtuZQDivDGtkSwheoZMrpZ8OUxmA--aEB4pnHT/pub?gid=73762288&single=true&output=csv";
-
-
-// ===============================
-// CHARGER LE CSV
-// ===============================
-
-async function chargerCSV() {
-
-  try {
-
-    // Lecture du fichier CSV
-    const response = await fetch(CSV_URL);
-
-    // Convertir en texte
-    const csvText = await response.text();
-
-    console.log("CSV chargé :", csvText);
-
-    // Conversion CSV → Tableau
-    const lignes = csvText.trim().split("\n");
-
-    // Séparer les colonnes
-    const data = lignes.map(ligne => ligne.split(","));
-
-    console.log(data);
-
-    // Affichage HTML
-    afficherTableau(data);
-
-  } catch(error) {
-
-    console.error("Erreur CSV :", error);
-
-  }
-
-}
-
-
-// ===============================
-// AFFICHAGE DU TABLEAU
-// ===============================
-
-function afficherTableau(data) {
-
-  const container = document.getElementById("table-container");
-
-  let html = "<table border='1' cellpadding='5' cellspacing='0'>";
-
-  data.forEach((ligne, index) => {
-
-    html += "<tr>";
-
-    ligne.forEach(cellule => {
-
-      if(index === 0) {
-
-        html += `<th>${cellule}</th>`;
-
-      } else {
-
-        html += `<td>${cellule}</td>`;
-
-      }
-
-    });
-
-    html += "</tr>";
-
-  });
-
-  html += "</table>";
-
-  container.innerHTML = html;
-
-}
-
-
-// ===============================
-// LANCEMENT AUTOMATIQUE
-// ===============================
-
-chargerCSV();
-
-</script>
-  
 </body>
 </html>
