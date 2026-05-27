@@ -1892,36 +1892,43 @@ async function loadDistrictData() {
 
   document.getElementById('load-indicator').style.display = 'flex';
 
-  try {
-    const sheetName = document.getElementById('gs-sheet').value.trim() || 'Inventaire_Districts';
-    const url = gsUrl + '?action=getDistrict&district=' + encodeURIComponent(district) + '&sheet=' + encodeURIComponent(sheetName);
-    const res  = await fetch(url);
-    const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); } catch(e) {
-      document.getElementById('load-indicator').style.display = 'none';
-      document.getElementById('load-new').style.display = 'block';
-      submitMode = 'new'; unlockForm(); return;
-    }
+  // JSONP pour contourner les restrictions CORS de Google Apps Script
+  const callbackName = 'gsDistrictCb_' + Date.now();
+  const sheetName = document.getElementById('gs-sheet').value.trim() || 'Inventaire_Districts';
+  const url = gsUrl + '?action=getDistrict&district=' + encodeURIComponent(district)
+            + '&sheet=' + encodeURIComponent(sheetName)
+            + '&callback=' + callbackName;
 
+  const timer = setTimeout(function() {
+    cleanup({ status: 'error', message: 'timeout' });
+  }, 12000);
+
+  function cleanup(json) {
+    clearTimeout(timer);
+    delete window[callbackName];
+    const s = document.getElementById('jsonp-district-script');
+    if (s) s.remove();
     document.getElementById('load-indicator').style.display = 'none';
-
-    if (json.status === 'success' && json.data) {
+    if (json && json.status === 'success' && json.data) {
       fillFormFromSheet(json.data);
       lastRowIndex = json.rowIndex || null;
       document.getElementById('load-success').style.display = 'block';
-      setSubmitMode('update');  // par défaut : mise à jour
+      submitMode = 'update';
+      unlockForm();
     } else {
       document.getElementById('load-new').style.display = 'block';
       submitMode = 'new';
       unlockForm();
     }
-  } catch (err) {
-    document.getElementById('load-indicator').style.display = 'none';
-    document.getElementById('load-new').style.display = 'block';
-    submitMode = 'new';
-    unlockForm();
   }
+
+  window[callbackName] = function(json) { cleanup(json); };
+
+  const scriptEl = document.createElement('script');
+  scriptEl.id = 'jsonp-district-script';
+  scriptEl.src = url;
+  scriptEl.onerror = function() { cleanup({ status: 'error' }); };
+  document.head.appendChild(scriptEl);
 }
 
 // Correspondance colonnes Google Sheets → champs HTML
@@ -2739,68 +2746,88 @@ async function loadSheetsData() {
 
   show('⏳ Chargement des données depuis Google Sheets...');
 
-  try {
-    const url = gsUrl + '?action=getAllDistricts&sheet=' + encodeURIComponent(sheetName);
-    const res  = await fetch(url);
-    const text = await res.text();  // Always read as text first
+  // Google Apps Script GET avec JSONP pour contourner les restrictions CORS
+  return new Promise(function(resolve) {
+    const callbackName = 'gsCallback_' + Date.now();
+    const url = gsUrl + '?action=getAllDistricts&sheet=' + encodeURIComponent(sheetName) + '&callback=' + callbackName;
 
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (parseErr) {
-      show('❌ Réponse inattendue du serveur (pas du JSON). Vérifiez que le script Apps Script est bien déployé et que l\'URL est correcte.', '#c0392b', '#fdf2f2', '#f5c6c6');
-      console.error('Response was:', text.substring(0, 200));
-      return false;
+    const timeout = setTimeout(function() {
+      cleanup();
+      show('❌ Délai dépassé. Vérifiez que le script est bien déployé en accès "Tout le monde".', '#c0392b', '#fdf2f2', '#f5c6c6');
+      resolve(false);
+    }, 15000);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      const oldScript = document.getElementById('jsonp-gs-script');
+      if (oldScript) oldScript.remove();
     }
 
-    if (json.status === 'success' && json.districts) {
-      sheetsData = {};
-      const n = function(v) { var f = parseFloat(v); return (v !== '' && !isNaN(f)) ? f : null; };
-      Object.entries(json.districts).forEach(function(entry) {
-        var districtName = entry[0];
-        var row = entry[1];
-        var d = row.data;
-        sheetsData[districtName] = {
-          region:              d['Région']                          || '',
-          nb_fs:               n(d['Nombre FS'])   != null ? n(d['Nombre FS'])   : n(d['Nombre FOSA / CSB']),
-          nb_equipes:          n(d['Nombre Équipes']),
-          req_glaciere_std:    n(d['Req. Glacière Standard']),
-          dispo_glaciere_std:  n(d['Dispo. Glacière Standard']),
-          etat_glaciere_std:   n(d['État Glacière Standard (%)']),
-          req_glaciere_camp:   n(d['Req. Glacière Campagne']),
-          dispo_glaciere_camp: n(d['Dispo. Glacière Campagne']),
-          req_pv:              n(d['Req. Porte-Vaccins']),
-          dispo_pv:            n(d['Dispo. Porte-Vaccins']),
-          etat_pv:             n(d['État Porte-Vaccins (%)']),
-          req_acc:             n(d['Req. Accumulateurs']),
-          dispo_acc:           n(d['Dispo. Accumulateurs']),
-          req_refrig:          n(d['Req. Réfrigérateurs']),
-          total_refrig:        n(d['Réfrig. TOTAL - Qté']),
-          fonct_refrig:        n(d['Réfrig. TOTAL - Fonct.']),
-          req_cong:            n(d['Req. Congélateurs']),
-          total_cong:          n(d['Congél. TOTAL - Qté']),
-          fonct_cong:          n(d['Congél. TOTAL - Fonct.']),
-          cap_plus5_req:       n(d['Capacité +5°C Requise (L)']),
-          cap_plus5:           n(d['Capacité +5°C Disponible (L)']),
-          cap_minus20_req:     n(d['Capacité -20°C Requise (L)']),
-          cap_minus20:         n(d['Capacité -20°C Disponible (L)']),
-          date_collecte:       d['Date Collecte'] || '',
-        };
-      });
-      sheetsDataLoaded = true;
-      var count = Object.keys(sheetsData).length;
-      show('✅ ' + count + ' district(s) chargé(s) depuis Google Sheets.', '#0a3d2b', '#e8f5ee', '#a8d5ba');
-      setTimeout(function() { if (statusEl) statusEl.style.display = 'none'; }, 4000);
-      return true;
-    } else {
-      show('⚠️ Aucune donnée trouvée dans Google Sheets.');
-      return false;
-    }
-  } catch (err) {
-    console.error('[loadSheetsData] fetch error:', err);
-    show('❌ Erreur réseau : ' + err.message + '. Vérifiez votre connexion et l\'URL du script.', '#c0392b', '#fdf2f2', '#f5c6c6');
-    return false;
-  }
+    window[callbackName] = function(json) {
+      cleanup();
+      try {
+        if (json.status === 'success' && json.districts) {
+          sheetsData = {};
+          const n = function(v) { var f = parseFloat(v); return (v !== '' && v != null && !isNaN(f)) ? f : null; };
+          Object.entries(json.districts).forEach(function(entry) {
+            var districtName = entry[0];
+            var row = entry[1];
+            var d = row.data;
+            sheetsData[districtName] = {
+              region:              d['Région']                          || '',
+              nb_fs:               n(d['Nombre FS']) != null ? n(d['Nombre FS']) : n(d['Nombre FOSA / CSB']),
+              nb_equipes:          n(d['Nombre Équipes']),
+              req_glaciere_std:    n(d['Req. Glacière Standard']),
+              dispo_glaciere_std:  n(d['Dispo. Glacière Standard']),
+              etat_glaciere_std:   n(d['État Glacière Standard (%)']),
+              req_glaciere_camp:   n(d['Req. Glacière Campagne']),
+              dispo_glaciere_camp: n(d['Dispo. Glacière Campagne']),
+              req_pv:              n(d['Req. Porte-Vaccins']),
+              dispo_pv:            n(d['Dispo. Porte-Vaccins']),
+              etat_pv:             n(d['État Porte-Vaccins (%)']),
+              req_acc:             n(d['Req. Accumulateurs']),
+              dispo_acc:           n(d['Dispo. Accumulateurs']),
+              req_refrig:          n(d['Req. Réfrigérateurs']),
+              total_refrig:        n(d['Réfrig. TOTAL - Qté']),
+              fonct_refrig:        n(d['Réfrig. TOTAL - Fonct.']),
+              req_cong:            n(d['Req. Congélateurs']),
+              total_cong:          n(d['Congél. TOTAL - Qté']),
+              fonct_cong:          n(d['Congél. TOTAL - Fonct.']),
+              cap_plus5_req:       n(d['Capacité +5°C Requise (L)']),
+              cap_plus5:           n(d['Capacité +5°C Disponible (L)']),
+              cap_minus20_req:     n(d['Capacité -20°C Requise (L)']),
+              cap_minus20:         n(d['Capacité -20°C Disponible (L)']),
+              date_collecte:       d['Date Collecte'] || '',
+            };
+          });
+          sheetsDataLoaded = true;
+          const count = Object.keys(sheetsData).length;
+          console.log('[loadSheetsData] Loaded', count, 'districts from Sheets');
+          show('✅ ' + count + ' district(s) chargé(s) depuis Google Sheets.', '#0a3d2b', '#e8f5ee', '#a8d5ba');
+          setTimeout(function() { if (statusEl) statusEl.style.display = 'none'; }, 4000);
+          resolve(true);
+        } else {
+          show('⚠️ Aucune donnée trouvée dans Google Sheets.');
+          resolve(false);
+        }
+      } catch(err) {
+        console.error('[loadSheetsData] parse error:', err);
+        show('❌ Erreur de traitement : ' + err.message, '#c0392b', '#fdf2f2', '#f5c6c6');
+        resolve(false);
+      }
+    };
+
+    const script = document.createElement('script');
+    script.id  = 'jsonp-gs-script';
+    script.src = url;
+    script.onerror = function() {
+      cleanup();
+      show('❌ Impossible de contacter le script. Vérifiez l\'URL et le déploiement.', '#c0392b', '#fdf2f2', '#f5c6c6');
+      resolve(false);
+    };
+    document.head.appendChild(script);
+  });
 }
 
 var natTableData = [];
