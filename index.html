@@ -1555,8 +1555,7 @@
             </div>
             <div class="field span-2">
               <label>URL CSV Google Sheets <small style="font-weight:400;text-transform:none;color:var(--gray-500)">(pour le tableau national — Fichier → Partager → Publier sur le web → CSV)</small></label>
-              <input type="text" id="gs-csv-url" placeholder="https://docs.google.com/spreadsheets/d/XXXX/export?format=csv&gid=XXXX"
-                value="https://docs.google.com/spreadsheets/d/e/2PACX-1vQrYd89QVrOQ_EqJWmkcf71_uoG_pynf8PDFl51PJWtuZQDivDGtkSwheoZMrpZ8OUxmA--aEB4pnHT/pub?gid=73762288&single=true&output=csv">
+              <input type="text" id="gs-csv-url" placeholder="https://docs.google.com/spreadsheets/d/XXXX/export?format=csv&gid=XXXX">
             </div>
           </div>
           <div style="margin-top:12px; font-size:12px; color:#4a7a9b; line-height:1.6;">
@@ -1621,15 +1620,6 @@
       <div class="card-body">
         <!-- Status chargement -->
         <div id="nat-load-status" style="display:none; padding:10px 14px; border-radius:6px; font-size:13px; font-weight:500; background:#fff8e1; border:1px solid #ffe082; color:#7d5a00; margin-bottom:14px;"></div>
-
-        <!-- Config rapide URL CSV -->
-        <div style="background:#f0f7ff;border:1px solid #b3d4f5;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <span style="font-size:13px;font-weight:600;color:#1a4a7a;white-space:nowrap;">📡 URL CSV Google Sheets :</span>
-          <input type="text" id="nat-csv-url-mirror" placeholder="Collez ici l'URL CSV publique de votre feuille..."
-            style="flex:1;min-width:260px;padding:7px 11px;border:1.5px solid #b3d4f5;border-radius:6px;font-size:12px;font-family:inherit;"
-            oninput="document.getElementById('gs-csv-url').value=this.value">
-          <button onclick="sheetsDataLoaded=false; buildNationalTable()" class="btn btn-primary" style="padding:7px 16px;font-size:13px;white-space:nowrap;">☁️ Charger</button>
-        </div>
 
         <!-- KPIs nationaux -->
         <div class="nat-kpi-row" id="nat-kpi-row"></div>
@@ -1746,12 +1736,9 @@ document.addEventListener('DOMContentLoaded', () => {
     regionSel.appendChild(opt);
   });
 
-  // Synchroniser le champ miroir CSV dans l'onglet national
-  const csvField = document.getElementById('gs-csv-url');
-  const csvMirror = document.getElementById('nat-csv-url-mirror');
-  if (csvField && csvMirror && csvField.value) csvMirror.value = csvField.value;
   // Auto-update capacity gaps
-  ['cap-plus5','cap-plus5-req','cap-minus20','cap-minus20-req'].forEach(id => {    const el = document.getElementById(id);
+  ['cap-plus5','cap-plus5-req','cap-minus20','cap-minus20-req'].forEach(id => {
+    const el = document.getElementById(id);
     if (el) el.addEventListener('input', updateCapGaps);
   });
 });
@@ -1942,25 +1929,29 @@ function fillFormFromSheet(d) {
   set('nb-equipes',   d['Nombre Équipes']);
   set('data-source',  d['Source Données']);
 
-  // Calculer les besoins depuis les valeurs de Sheets
+  // Req fields — lire directement les valeurs sauvegardées dans Sheets
+  // (priorité sur le calcul depuis nb-fosa / nb-equipes)
+  set('req-glaciere-std',  d['Req. Glacière Standard']);
+  set('req-glaciere-camp', d['Req. Glacière Campagne']);
+  set('req-pv',            d['Req. Porte-Vaccins']);
+  set('req-acc',           d['Req. Accumulateurs']);
+  set('req-refrig',        d['Req. Réfrigérateurs']);
+  // req-cong : TOUJOURS recalculer depuis nb_equipes × 4 / 300
+  const nbEq2 = parseFloat(d['Nombre Équipes']) || 0;
+  if (nbEq2) document.getElementById('req-cong').value = Math.ceil(nbEq2 * 4 / 300);
+
+  // Si les colonnes req ne sont pas dans le sheet (anciennes saisies), recalculer
   const nbFosa = parseInt(d['Nombre FS']) || 0;
   const nbEq   = parseFloat(d['Nombre Équipes']) || 0;
   const nbEqC  = Math.ceil(nbEq);
-
-  // Req passifs
-  set('req-glaciere-std',  d['Req. Glacière Standard']);
-  set('req-glaciere-camp', d['Req. Glacière Campagne']);
-  set('req-refrig',        d['Req. Réfrigérateurs']);
-  if (!d['Req. Réfrigérateurs'] && nbFosa) document.getElementById('req-refrig').value = nbFosa;
-  if (d['Req. Porte-Vaccins']) {
-    set('req-pv',  d['Req. Porte-Vaccins']);
-    set('req-acc', d['Req. Accumulateurs']);
-  } else if (nbEqC) {
+  if (!d['Req. Réfrigérateurs'] && nbFosa) {
+    document.getElementById('req-refrig').value = nbFosa;
+  }
+  if (!d['Req. Porte-Vaccins'] && nbEqC) {
     document.getElementById('req-pv').value  = nbEqC;
     document.getElementById('req-acc').value = nbEqC * 4;
   }
-  // req-cong : TOUJOURS recalcul depuis nb_equipes × 4 / 300
-  if (nbEq) document.getElementById('req-cong').value = Math.ceil(nbEq * 4 / 300);
+  // req-cong est toujours recalculé ci-dessus depuis nbEq2
 
   // ECF Passifs
   set('dispo-glaciere-std',  d['Dispo. Glacière Standard']);
@@ -2183,13 +2174,7 @@ function goToStep(n) {
 
   if (n === 4) buildReview();
   if (n === 5) buildDashboard();
-  if (n === 6) {
-    // Synchroniser le champ miroir avec la valeur actuelle
-    const csvVal = document.getElementById('gs-csv-url').value;
-    const mirror = document.getElementById('nat-csv-url-mirror');
-    if (mirror && csvVal) mirror.value = csvVal;
-    buildNationalTable();
-  }
+  if (n === 6) buildNationalTable();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
