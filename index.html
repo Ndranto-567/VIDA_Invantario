@@ -1849,9 +1849,8 @@ function applyExcelDistrictData(district) {
     document.getElementById('req-acc').value = ne_ceil * 4;
   }
   if (d.req_refrig !== '') document.getElementById('req-refrig').value = d.req_refrig;
-  // req_cong : formule = ceil(nb_equipes * 4 / 300)
-  const reqCongCalc = d.nb_equipes ? Math.ceil(d.nb_equipes * 4 / 300) : (d.req_cong || '');
-  document.getElementById('req-cong').value = reqCongCalc;
+  // req-cong : TOUJOURS calculer depuis nb_equipes × 4 / 300 (jamais utiliser la valeur stockée)
+  if (d.nb_equipes) document.getElementById('req-cong').value = Math.ceil(d.nb_equipes * 4 / 300);
   if (d.cap_plus5_req !== '') document.getElementById('cap-plus5-req').value = d.cap_plus5_req;
   if (d.cap_minus20_req !== '') document.getElementById('cap-minus20-req').value = d.cap_minus20_req;
 
@@ -1937,7 +1936,9 @@ function fillFormFromSheet(d) {
   set('req-pv',            d['Req. Porte-Vaccins']);
   set('req-acc',           d['Req. Accumulateurs']);
   set('req-refrig',        d['Req. Réfrigérateurs']);
-  set('req-cong',          d['Req. Congélateurs']);
+  // req-cong : TOUJOURS recalculer depuis nb_equipes × 4 / 300
+  const nbEq2 = parseFloat(d['Nombre Équipes']) || 0;
+  if (nbEq2) document.getElementById('req-cong').value = Math.ceil(nbEq2 * 4 / 300);
 
   // Si les colonnes req ne sont pas dans le sheet (anciennes saisies), recalculer
   const nbFosa = parseInt(d['Nombre FS']) || 0;
@@ -1950,10 +1951,7 @@ function fillFormFromSheet(d) {
     document.getElementById('req-pv').value  = nbEqC;
     document.getElementById('req-acc').value = nbEqC * 4;
   }
-  // req-cong : formule ceil(nb_equipes * 4 / 300), fallback sur valeur Sheets
-  if (!d['Req. Congélateurs'] && nbEq) {
-    document.getElementById('req-cong').value = Math.ceil(nbEq * 4 / 300);
-  }
+  // req-cong est toujours recalculé ci-dessus depuis nbEq2
 
   // ECF Passifs
   set('dispo-glaciere-std',  d['Dispo. Glacière Standard']);
