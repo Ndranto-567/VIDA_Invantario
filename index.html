@@ -1543,6 +1543,8 @@
         <!-- Google Sheets Config -->
         <div class="gs-config" id="gs-config-section">
         <!-- Section de configuration masquée -->
+          <!-- Section de configuration masquée -->
+        <div id="gs-config" style="display:none;">
           <h3>⚙️ Configuration Google Sheets</h3>
           <div class="form-grid">
             <div class="field">
@@ -1555,11 +1557,38 @@
               <input type="text" id="gs-sheet" placeholder="ex: Inventaire_Districts" value="Inventaire_Districts">
             </div>
             <div class="field span-2">
-              <label>URL CSV Google Sheets <small style="font-weight:400;text-transform:none;color:var(--gray-500)">(pour le tableau national — Fichier → Partager → Publier sur le web → CSV)</small></label>
+              <label>URL CSV Google Sheets</label>
               <input type="text" id="gs-csv-url" placeholder="https://docs.google.com/spreadsheets/d/XXXX/export?format=csv&gid=XXXX">
-             </div>
+            </div>
           </div>
-            <div style="margin-top:12px; font-size:12px; color:#4a7a9b; line-height:1.6;">
+        </div>
+        
+        <script>
+        // URL CSV directement intégrée dans le script
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrYd89QVrOQ_EqJWmkcf71_uoG_pynf8PDFl51PJWtuZQDivDGtkSwheoZMrpZ8OUxmA--aEB4pnHT/pub?gid=73762288&single=true&output=csv';
+        
+        // Si vous avez besoin de pré-remplir le champ masqué avec l'URL
+        document.addEventListener('DOMContentLoaded', function() {
+          const csvUrlField = document.getElementById('gs-csv-url');
+          if (csvUrlField) {
+            csvUrlField.value = CSV_URL;
+          }
+        });
+        
+        // Exemple d'utilisation de CSV_URL dans votre script
+        async function loadCSVData() {
+          try {
+            const response = await fetch(CSV_URL);
+            const csvText = await response.text();
+            // Traitez votre CSV ici
+            console.log('CSV chargé avec succès');
+            return csvText;
+          } catch (error) {
+            console.error('Erreur lors du chargement du CSV:', error);
+          }
+        }
+        </script>
+          <div style="margin-top:12px; font-size:12px; color:#4a7a9b; line-height:1.6;">
             <strong>💡 Instructions :</strong> Créez un Google Apps Script (Tools → Script editor) dans votre Google Sheet et collez le script fourni. Publiez-le en tant que « Web App » (accès : Tout le monde) pour obtenir l'URL. 
             <a href="#" onclick="showScriptHelp(); return false;" style="color:#1a5276; font-weight:600;">Voir le script Google Apps Script ▸</a>
           </div>
