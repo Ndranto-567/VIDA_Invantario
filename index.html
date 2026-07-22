@@ -1063,7 +1063,7 @@
   <div class="header-inner">
     <div class="header-logo">❄️</div>
     <div class="header-title">
-      <h1>Inventaire des Équipements Chaîne de Froid — PEV</h1>
+      <h1>INVENTAIRES PEV</h1>
       <p>Programme Élargi de Vaccination · Madagascar</p>
     </div>
     <div class="header-badge" id="current-date-badge">—</div>
@@ -1072,12 +1072,12 @@
 
 <!-- MENU PRINCIPAL -->
 <nav class="main-menu" id="main-menu">
-  <button class="main-menu-btn active" id="mmenu-ccf" onclick="switchModule('ccf')">
-    <span class="menu-icon">❄️</span> Inventaire CCF
+  <button class="main-menu-btn active" id="mmenu-kits" onclick="switchModule('kits')">
+    <span class="menu-icon">🧪</span> Kits de Prélèvement
   </button>
   <div class="main-menu-sep"></div>
-  <button class="main-menu-btn" id="mmenu-kits" onclick="switchModule('kits')">
-    <span class="menu-icon">🧪</span> Kits de Prélèvement
+  <button class="main-menu-btn" id="mmenu-ccf" onclick="switchModule('ccf')">
+    <span class="menu-icon">❄️</span> Inventaire CCF
   </button>
 </nav>
 
@@ -1086,7 +1086,7 @@
   <!-- ╔══════════════════════════════════════════════════════╗ -->
   <!-- ║  MODULE 1 — INVENTAIRE CCF                          ║ -->
   <!-- ╚══════════════════════════════════════════════════════╝ -->
-  <div class="module active" id="module-ccf">
+  <div class="module" id="module-ccf">
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:25%"></div></div>
 
     <!-- Barre d'étapes CCF -->
@@ -1787,7 +1787,7 @@
   <!-- ╔══════════════════════════════════════════════════════╗ -->
   <!-- ║  MODULE 2 — KITS DE PRÉLÈVEMENT                    ║ -->
   <!-- ╚══════════════════════════════════════════════════════╝ -->
-  <div class="module" id="module-kits">
+  <div class="module active" id="module-kits">
 
     <!-- Barre d'onglets Kits -->
     <div class="steps-bar" id="kits-tabs-bar">
@@ -2002,6 +2002,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updateCapGaps);
   });
+
+  // Kits est le module par défaut
+  initKitsPanel();
 });
 
 // ============================================================
@@ -2413,7 +2416,7 @@ function saveSessionSubmission() {
 
 
 let currentStep = 1;
-let currentModule = 'ccf'; // 'ccf' | 'kits'
+let currentModule = 'kits'; // 'ccf' | 'kits'
 
 // ============================================================
 // SWITCH MODULE principal (CCF ↔ Kits)
