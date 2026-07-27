@@ -320,6 +320,16 @@
     border: 1px solid var(--gray-200);
   }
 
+  /* En-têtes figés pour le tableau Saisie FS */
+  #fs-main-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+  #fs-main-table thead tr:nth-child(2) th {
+    top: 38px; /* hauteur de la première ligne d'en-tête */
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -1651,7 +1661,7 @@
             <div class="field">
               <label>URL du Google Apps Script <span class="req">*</span></label>
               <input type="text" id="gs-url" placeholder="https://script.google.com/macros/s/XXXXXX/exec"
-                value="https://script.google.com/macros/s/AKfycbwtuXsDTc2Wz9erMiudzqsHbP9BvVkjA7RnnccC2jBtDeqUzzGvi0L7tgKf9Af1hcxPHQ/exec">
+                value="https://script.google.com/macros/s/AKfycbwLyDzdWxM9_92lli3ikbgQ8ZFHirKRgudgHJb6VT93AZHCMdFvVkQfxjMdLVGJkZsEsQ/exec">
             </div>
             <div class="field">
               <label>Feuille cible (Sheet Name)</label>
@@ -4607,11 +4617,17 @@ function fsFillFromSheets(rows) {
   const COL_MAP = {
     'Population Cible (<5 ans)': 'fs-pop-',
     'Nombre Équipes':            'fs-eq-',
+    'Req. Glacière Standard':    'fs-gs-req-',
     'Dispo. Glacière Standard':  'fs-gs-dispo-',
+    'Req. Glacière Campagne':    'fs-gc-req-',
     'Dispo. Glacière Campagne':  'fs-gc-dispo-',
+    'Req. Porte-Vaccins':        'fs-pv-req-',
     'Dispo. Porte-Vaccins':      'fs-pv-dispo-',
+    'Req. Accumulateurs':        'fs-ac-req-',
     'Dispo. Accumulateurs':      'fs-ac-dispo-',
+    'Req. Réfrigérateurs':       'fs-rf-req-',
     'Dispo. Réfrigérateurs':     'fs-rf-dispo-',
+    'Req. Congélateurs':         'fs-cg-req-',
     'Dispo. Congélateurs':       'fs-cg-dispo-',
     'Nb Fridge Tag':             'fs-ft-',
     'Observation':               'fs-obs-',
@@ -4736,35 +4752,37 @@ function fsEditableRowHtml(label, idx, bg, isSdsp) {
   const stickyStyle = 'position:sticky;left:0;background:' + bg + ';padding:6px 8px;font-size:11px;font-weight:' + (isSdsp ? '700' : '500') + ';';
   const icon = isSdsp ? '🏢 ' : '🏥 ';
   const inp = (id, w) => '<td><input type="number" class="num-input fs-input" id="' + id + '" data-prefix="' + prefix + '" min="0" placeholder="0" style="width:' + (w||52) + 'px;font-size:11px;padding:3px 4px;" oninput="fsCalcRow(this.dataset.prefix)"></td>';
-  // Champ readonly avec fond calculé
+  // Champ readonly calculé auto (Nb Équipes)
   const inpRo = (id, w) => '<td><input type="number" id="' + id + '" readonly style="width:' + (w||52) + 'px;font-size:11px;padding:3px 4px;background:#f0f4ff;border:1px solid #c5cae9;border-radius:4px;color:#283593;font-weight:600;cursor:default;" placeholder="auto"></td>';
+  // Champ Req : calculé auto mais modifiable manuellement (fond bleu pâle)
+  const inpReq = (id, w) => '<td><input type="number" class="num-input fs-req-input" id="' + id + '" data-prefix="' + prefix + '" min="0" placeholder="auto" style="width:' + (w||52) + 'px;font-size:11px;padding:3px 4px;background:#e8eaf6;border:1px solid #9fa8da;border-radius:4px;color:#283593;" title="Valeur calculée automatiquement — modifiable manuellement" oninput="fsCalcGapsOnly(this.dataset.prefix)"></td>';
   const calc = id => '<td><span class="calc-cell calc-neutral" id="' + id + '" style="font-size:11px;">—</span></td>';
 
   return '<td style="' + stickyStyle + '">' + icon + label + '</td>'
     + inp('fs-pop-' + prefix, 60)
     + inpRo('fs-eq-' + prefix, 55)
     // Glacière std
-    + calc('fs-gs-req-' + prefix)
+    + inpReq('fs-gs-req-' + prefix)
     + inp('fs-gs-dispo-' + prefix)
     + calc('fs-gs-gap-' + prefix)
     // Glacière camp
-    + calc('fs-gc-req-' + prefix)
+    + inpReq('fs-gc-req-' + prefix)
     + inp('fs-gc-dispo-' + prefix)
     + calc('fs-gc-gap-' + prefix)
     // PV
-    + calc('fs-pv-req-' + prefix)
+    + inpReq('fs-pv-req-' + prefix)
     + inp('fs-pv-dispo-' + prefix)
     + calc('fs-pv-gap-' + prefix)
     // Accum
-    + calc('fs-ac-req-' + prefix)
+    + inpReq('fs-ac-req-' + prefix)
     + inp('fs-ac-dispo-' + prefix)
     + calc('fs-ac-gap-' + prefix)
     // Réfrig
-    + calc('fs-rf-req-' + prefix)
+    + inpReq('fs-rf-req-' + prefix)
     + inp('fs-rf-dispo-' + prefix)
     + calc('fs-rf-gap-' + prefix)
     // Congél
-    + calc('fs-cg-req-' + prefix)
+    + inpReq('fs-cg-req-' + prefix)
     + inp('fs-cg-dispo-' + prefix)
     + calc('fs-cg-gap-' + prefix)
     + inp('fs-ft-' + prefix, 50)
@@ -4815,32 +4833,38 @@ function fsCalcRow(prefix) {
   const pop = popVal;
   const eq  = eqCalc;
 
-  // Formules besoins (mêmes que niveau district)
-  const reqGs = pop !== null ? Math.ceil(pop / 1000) : null;
-  const reqGc = eq  !== null ? eq  : null;
-  const reqPv = eq  !== null ? Math.ceil(eq * 20) : null;
-  const reqAc = eq  !== null ? Math.ceil(eq * 20 * 5) : null;
-  const reqRf = pop !== null ? Math.ceil(pop / 1000) : null;
+  // Formules besoins — identiques au niveau district
+  // req_glaciere_std = 2 (fixe)
+  // req_glaciere_camp = 2 (fixe)
+  // req_pv = ceil(nb_equipes) — 1 porte-vaccin par équipe
+  // req_acc = ceil(nb_equipes) × 4 — 4 accumulateurs par porte-vaccin
+  // req_refrig = 1 — 1 réfrigérateur par FS
+  // req_cong = ceil(nb_equipes × 4 / 300)
+  const reqGs = 2;
+  const reqGc = 2;
+  const reqPv = eq  !== null ? Math.ceil(eq) : null;
+  const reqAc = eq  !== null ? Math.ceil(eq) * 4 : null;
+  const reqRf = 1;
   const reqCg = eq  !== null ? Math.ceil(eq * 4 / 300) : null;
 
-  // Afficher req
-  st('fs-gs-req-' + prefix, reqGs, false);
-  st('fs-gc-req-' + prefix, reqGc, false);
-  st('fs-pv-req-' + prefix, reqPv, false);
-  st('fs-ac-req-' + prefix, reqAc, false);
-  st('fs-rf-req-' + prefix, reqRf, false);
-  st('fs-cg-req-' + prefix, reqCg, false);
+  // Pré-remplir les champs Req (seulement si vides ou si c'est un recalcul automatique)
+  const setReq = (id, v) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // Ne pas écraser une valeur saisie manuellement
+    if (el.dataset.manualOverride === '1') return;
+    if (v !== null) el.value = v.toString();
+    else el.value = '';
+  };
+  setReq('fs-gs-req-' + prefix, reqGs);
+  setReq('fs-gc-req-' + prefix, reqGc);
+  setReq('fs-pv-req-' + prefix, reqPv);
+  setReq('fs-ac-req-' + prefix, reqAc);
+  setReq('fs-rf-req-' + prefix, reqRf);
+  setReq('fs-cg-req-' + prefix, reqCg);
 
-  // Gaps
-  const dispo = key => g('fs-' + key + '-dispo-' + prefix);
-  const gap   = (req, dis) => (req !== null && dis !== null) ? dis - req : null;
-
-  st('fs-gs-gap-' + prefix, gap(reqGs, dispo('gs')), true);
-  st('fs-gc-gap-' + prefix, gap(reqGc, dispo('gc')), true);
-  st('fs-pv-gap-' + prefix, gap(reqPv, dispo('pv')), true);
-  st('fs-ac-gap-' + prefix, gap(reqAc, dispo('ac')), true);
-  st('fs-rf-gap-' + prefix, gap(reqRf, dispo('rf')), true);
-  st('fs-cg-gap-' + prefix, gap(reqCg, dispo('cg')), true);
+  // Recalculer les gaps avec les valeurs Req actuelles (auto ou manuelles)
+  fsCalcGapsOnly(prefix);
 
   // Màj totaux
   const region   = document.getElementById('fs-region').value;
@@ -4915,12 +4939,45 @@ function fsUpdateTotals(fsList) {
   }
 }
 
+// Recalculer uniquement les gaps (appelé quand Req est modifié manuellement)
+function fsCalcGapsOnly(prefix) {
+  const g  = id => { const el = document.getElementById(id); return el && el.value !== '' ? parseFloat(el.value) : null; };
+  const st = (id, v) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (v === null) { el.textContent = '—'; el.className = 'calc-cell calc-neutral'; return; }
+    el.textContent = v > 0 ? '+' + v : v.toString();
+    el.className = 'calc-cell ' + (v > 0 ? 'calc-gap' : v < 0 ? 'calc-ok' : 'calc-neutral');
+  };
+  const req  = key => g('fs-' + key + '-req-' + prefix);
+  const disp = key => g('fs-' + key + '-dispo-' + prefix);
+  const gap  = (r, d) => (r !== null && d !== null) ? d - r : null;
+
+  st('fs-gs-gap-' + prefix, gap(req('gs'), disp('gs')));
+  st('fs-gc-gap-' + prefix, gap(req('gc'), disp('gc')));
+  st('fs-pv-gap-' + prefix, gap(req('pv'), disp('pv')));
+  st('fs-ac-gap-' + prefix, gap(req('ac'), disp('ac')));
+  st('fs-rf-gap-' + prefix, gap(req('rf'), disp('rf')));
+  st('fs-cg-gap-' + prefix, gap(req('cg'), disp('cg')));
+
+  // Màj totaux
+  const region   = document.getElementById('fs-region').value;
+  const district = document.getElementById('fs-district').value;
+  const fsList   = (FS_DATA[region] || {})[district] || [];
+  fsUpdateTotals(fsList);
+}
+
 function fsAttachListeners(fsList) {
   const prefixes = ['SDSP', ...fsList.map((_, i) => i)];
   prefixes.forEach(p => {
     ['pop','eq','gs-dispo','gc-dispo','pv-dispo','ac-dispo','rf-dispo','cg-dispo','ft'].forEach(field => {
       const el = document.getElementById('fs-' + field + '-' + p);
       if (el) el.addEventListener('input', () => fsCalcRow(p));
+    });
+    // Champs Req éditables — recalculer uniquement les gaps
+    ['gs-req','gc-req','pv-req','ac-req','rf-req','cg-req'].forEach(field => {
+      const el = document.getElementById('fs-' + field + '-' + p);
+      if (el) el.addEventListener('input', () => fsCalcGapsOnly(p));
     });
   });
 }
@@ -4950,12 +5007,12 @@ function submitFsData() {
     is_sdsp:    label === 'SDSP',
     pop_cible:  g('fs-pop-' + prefix),
     nb_equipes: g('fs-eq-'  + prefix),
-    gs_req:  txt('fs-gs-req-' + prefix),  gs_dispo:  g('fs-gs-dispo-' + prefix),  gs_gap:  txt('fs-gs-gap-' + prefix),
-    gc_req:  txt('fs-gc-req-' + prefix),  gc_dispo:  g('fs-gc-dispo-' + prefix),  gc_gap:  txt('fs-gc-gap-' + prefix),
-    pv_req:  txt('fs-pv-req-' + prefix),  pv_dispo:  g('fs-pv-dispo-' + prefix),  pv_gap:  txt('fs-pv-gap-' + prefix),
-    ac_req:  txt('fs-ac-req-' + prefix),  ac_dispo:  g('fs-ac-dispo-' + prefix),  ac_gap:  txt('fs-ac-gap-' + prefix),
-    rf_req:  txt('fs-rf-req-' + prefix),  rf_dispo:  g('fs-rf-dispo-' + prefix),  rf_gap:  txt('fs-rf-gap-' + prefix),
-    cg_req:  txt('fs-cg-req-' + prefix),  cg_dispo:  g('fs-cg-dispo-' + prefix),  cg_gap:  txt('fs-cg-gap-' + prefix),
+    gs_req:  g('fs-gs-req-' + prefix),  gs_dispo:  g('fs-gs-dispo-' + prefix),  gs_gap:  txt('fs-gs-gap-' + prefix),
+    gc_req:  g('fs-gc-req-' + prefix),  gc_dispo:  g('fs-gc-dispo-' + prefix),  gc_gap:  txt('fs-gc-gap-' + prefix),
+    pv_req:  g('fs-pv-req-' + prefix),  pv_dispo:  g('fs-pv-dispo-' + prefix),  pv_gap:  txt('fs-pv-gap-' + prefix),
+    ac_req:  g('fs-ac-req-' + prefix),  ac_dispo:  g('fs-ac-dispo-' + prefix),  ac_gap:  txt('fs-ac-gap-' + prefix),
+    rf_req:  g('fs-rf-req-' + prefix),  rf_dispo:  g('fs-rf-dispo-' + prefix),  rf_gap:  txt('fs-rf-gap-' + prefix),
+    cg_req:  g('fs-cg-req-' + prefix),  cg_dispo:  g('fs-cg-dispo-' + prefix),  cg_gap:  txt('fs-cg-gap-' + prefix),
     fridge_tag:  g('fs-ft-' + prefix),
     observation: (document.getElementById('fs-obs-' + prefix)?.value || ''),
   }));
