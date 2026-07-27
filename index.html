@@ -1661,7 +1661,7 @@
             <div class="field">
               <label>URL du Google Apps Script <span class="req">*</span></label>
               <input type="text" id="gs-url" placeholder="https://script.google.com/macros/s/XXXXXX/exec"
-                value="https://script.google.com/macros/s/AKfycbwLyDzdWxM9_92lli3ikbgQ8ZFHirKRgudgHJb6VT93AZHCMdFvVkQfxjMdLVGJkZsEsQ/exec">
+                value="https://script.google.com/macros/s/AKfycbxgcc3z2mY0yDR1OKQCbgadloR5VV8pV8LxRgOI-fNbfS8F7tizi9s9zOBNuGl3_zongw/exec>
             </div>
             <div class="field">
               <label>Feuille cible (Sheet Name)</label>
@@ -4895,17 +4895,17 @@ function fsUpdateTotals(fsList) {
   prefixes.forEach(p => {
     totPop    += g('fs-pop-' + p);
     totEq     += g('fs-eq-'  + p);
-    totGsReq  += parseFloat(document.getElementById('fs-gs-req-' + p)?.textContent) || 0;
+    totGsReq  += parseFloat(document.getElementById('fs-gs-req-' + p)?.value) || 0;
     totGsDispo += g('fs-gs-dispo-' + p);
-    totGcReq  += parseFloat(document.getElementById('fs-gc-req-' + p)?.textContent) || 0;
+    totGcReq  += parseFloat(document.getElementById('fs-gc-req-' + p)?.value) || 0;
     totGcDispo += g('fs-gc-dispo-' + p);
-    totPvReq  += parseFloat(document.getElementById('fs-pv-req-' + p)?.textContent) || 0;
+    totPvReq  += parseFloat(document.getElementById('fs-pv-req-' + p)?.value) || 0;
     totPvDispo += g('fs-pv-dispo-' + p);
-    totAcReq  += parseFloat(document.getElementById('fs-ac-req-' + p)?.textContent) || 0;
+    totAcReq  += parseFloat(document.getElementById('fs-ac-req-' + p)?.value) || 0;
     totAcDispo += g('fs-ac-dispo-' + p);
-    totRfReq  += parseFloat(document.getElementById('fs-rf-req-' + p)?.textContent) || 0;
+    totRfReq  += parseFloat(document.getElementById('fs-rf-req-' + p)?.value) || 0;
     totRfDispo += g('fs-rf-dispo-' + p);
-    totCgReq  += parseFloat(document.getElementById('fs-cg-req-' + p)?.textContent) || 0;
+    totCgReq  += parseFloat(document.getElementById('fs-cg-req-' + p)?.value) || 0;
     totCgDispo += g('fs-cg-dispo-' + p);
     totFt     += g('fs-ft-' + p);
   });
@@ -5106,12 +5106,12 @@ function exportFsExcel() {
     rows.push([
       (label === 'SDSP' ? '🏢 ' : '🏥 ') + label,
       g('fs-pop-' + prefix), g('fs-eq-' + prefix),
-      txt('fs-gs-req-' + prefix), g('fs-gs-dispo-' + prefix), txt('fs-gs-gap-' + prefix),
-      txt('fs-gc-req-' + prefix), g('fs-gc-dispo-' + prefix), txt('fs-gc-gap-' + prefix),
-      txt('fs-pv-req-' + prefix), g('fs-pv-dispo-' + prefix), txt('fs-pv-gap-' + prefix),
-      txt('fs-ac-req-' + prefix), g('fs-ac-dispo-' + prefix), txt('fs-ac-gap-' + prefix),
-      txt('fs-rf-req-' + prefix), g('fs-rf-dispo-' + prefix), txt('fs-rf-gap-' + prefix),
-      txt('fs-cg-req-' + prefix), g('fs-cg-dispo-' + prefix), txt('fs-cg-gap-' + prefix),
+      g('fs-gs-req-' + prefix), g('fs-gs-dispo-' + prefix), txt('fs-gs-gap-' + prefix),
+      g('fs-gc-req-' + prefix), g('fs-gc-dispo-' + prefix), txt('fs-gc-gap-' + prefix),
+      g('fs-pv-req-' + prefix), g('fs-pv-dispo-' + prefix), txt('fs-pv-gap-' + prefix),
+      g('fs-ac-req-' + prefix), g('fs-ac-dispo-' + prefix), txt('fs-ac-gap-' + prefix),
+      g('fs-rf-req-' + prefix), g('fs-rf-dispo-' + prefix), txt('fs-rf-gap-' + prefix),
+      g('fs-cg-req-' + prefix), g('fs-cg-dispo-' + prefix), txt('fs-cg-gap-' + prefix),
       g('fs-ft-' + prefix),
     ]);
   });
